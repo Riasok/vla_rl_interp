@@ -59,32 +59,43 @@
       </div>
       <div class="tldr">
         <h2>TL;DR</h2>
-        <p>Reinforcement learning (RL) in flow-based vision-language-action (VLA) models concentrates much of its effect in <strong>low-rank updates to the action expert’s Timestep Modules</strong>. These updates specialize to discrete denoising timesteps. Their shift directions predict task outcomes, reflect cross-task transfer, and support steering that improves RL policies <strong>without additional RL training</strong>.</p>
+        <p>Reinforcement learning (RL) produces <strong>low-rank updates concentrated in the Timestep Modules</strong> of flow-based vision-language-action (VLA) models. These modules capture a disproportionate share of the RL gains. We trace this structure to discrete denoising timesteps and show how the learned shift directions encode information about task outcomes and cross-task transfer. Steering along these directions further improves trained policies.</p>
       </div>
     </section>
 
     <section id="overview" aria-labelledby="overview-title">
       <h2 id="overview-title">What is this paper about?</h2>
-      <p>Where does RL change a VLA policy, and how do those changes affect behavior? We study this question in parameter space, comparing RL and behavior cloning (BC) in flow-based action experts. Across π<sub>0.5</sub> and GR00T N1.5/N1.6 on robot manipulation benchmarks, we find that Timestep Modules capture a disproportionate share of the performance gains from RL. We then examine how their updates encode task-related information and whether that information can improve policy behavior.</p>
+      <p>We investigate <strong>where and how RL learning signals are encoded in VLA parameters</strong>. Across π<sub>0.5</sub> and GR00T N1.5/N1.6 on LIBERO, ManiSkill, MetaWorld, and CALVIN, we connect parameter changes to performance through controlled module-replacement experiments.</p>
+      <p>The key finding is that much of RL adaptation can be understood as <strong>timestep-specific vector modulation of the action expert’s hidden states</strong>. We explain how discrete training timesteps give rise to the low-rank updates, then examine the information encoded in their shift directions through outcome prediction, task-transfer analysis, and steering.</p>
       <h3>What are Timestep Modules?</h3>
       <p>In π<sub>0.5</sub>, a Time MLP and adaptive RMS normalization (AdaRMS) projections convert the denoising timestep into <strong>scale, shift, and gate vectors</strong> for each attention or feed-forward sublayer. These vectors depend only on the timestep, independent of the image, language instruction, or current task progress.</p>
-      <figure class="figure">
+      <figure class="figure" id="timestep-modules">
         <a href="assets/main_timestep_modules.svg" target="_blank" rel="noopener" aria-label="Open the Timestep Modules diagram at full size">
           <img src="assets/main_timestep_modules.svg" width="975" height="407" alt="In the π0.5 action expert, the timestep passes through a Time MLP and AdaRMS projections to produce scale, shift, and gate vectors for attention and feed-forward sublayers.">
         </a>
-        <figcaption>The Timestep Modules in π<sub>0.5</sub> modulate the action expert at each denoising step. They account for 27.58% of its action-expert parameters. <a class="source" href="https://arxiv.org/html/2609.34599v1#S2.F1">Figure 1</a></figcaption>
+        <figcaption>The Time MLP maps the timestep embedding φ(τ) to a conditioning vector c<sub>τ</sub>; AdaRMS produces the scale s<sub>l</sub>, shift b<sub>l</sub>, and gate g<sub>l</sub> for each residual sublayer. These modules account for 27.58% of π<sub>0.5</sub>’s action-expert parameters. <a class="source" href="https://arxiv.org/html/2609.34599v1#S2.F1">Figure 1</a> · <a href="assets/main_timestep_modules.svg" target="_blank" rel="noopener">Full size</a></figcaption>
       </figure>
     </section>
 
     <section id="updates" aria-labelledby="updates-title">
       <h2 id="updates-title">Where are the RL updates concentrated?</h2>
-      <p>Both BC and RL update the Timestep Modules much more densely than attention and MLP layers. Their update structure differs: in π<sub>0.5</sub>, RL updates to the Timestep Modules have an effective rank of only about <strong>6–30</strong>, compared with hundreds for BC. RL updates to attention and MLP layers remain high-rank.</p>
-      <figure class="figure">
-        <a href="assets/pi05_density_rank_spaced_labels.png" target="_blank" rel="noopener" aria-label="Open the update density and effective rank figure at full size">
-          <img src="assets/pi05_density_rank_spaced_labels.png" width="2014" height="818" loading="lazy" alt="Update density is concentrated in AdaRMS and Time MLP. Across four benchmarks, their RL updates have low effective rank, while BC updates and attention and MLP updates have much higher rank.">
-        </a>
-        <figcaption><strong>Left:</strong> update density on LIBERO-Spatial, counting absolute parameter changes above 10<sup>−5</sup>. <strong>Right:</strong> effective update rank, the number of singular directions needed to explain 95% of the update’s squared Frobenius norm. <a class="source" href="https://arxiv.org/html/2609.34599v1#S3.F2">Figure 2</a></figcaption>
-      </figure>
+      <p>Both behavior cloning (BC) and RL update the Timestep Modules much more densely than attention and MLP layers. Their update structure differs: in π<sub>0.5</sub>, RL updates to the Timestep Modules have an effective rank of only about <strong>6–30</strong>, compared with hundreds for BC. RL updates to attention and MLP layers remain high-rank.</p>
+      <div class="update-figures">
+        <figure class="figure" id="update-density">
+          <a class="figure-crop density-panel" href="assets/pi05_density_rank_spaced_labels.png" target="_blank" rel="noopener" aria-label="Open the update density figure at full size">
+            <img src="assets/pi05_density_rank_spaced_labels.png" width="2014" height="818" loading="lazy" alt="On LIBERO-Spatial, AdaRMS and Time MLP are updated more densely than attention and MLP under both BC and RL.">
+          </a>
+          <figcaption><strong>Update density.</strong> Fraction of parameters whose absolute change exceeds 10<sup>−5</sup>, measured on LIBERO-Spatial. <a class="source" href="https://arxiv.org/html/2609.34599v1#S3.F2">Figure 2, left</a> · <a href="assets/pi05_density_rank_spaced_labels.png" target="_blank" rel="noopener">Full size</a></figcaption>
+        </figure>
+        <figure class="figure" id="update-rank">
+          <div class="figure-scroll" role="region" aria-label="Effective update rank figure; scroll horizontally on narrow screens" tabindex="0">
+            <a class="figure-crop rank-panel" href="assets/pi05_density_rank_spaced_labels.png" target="_blank" rel="noopener" aria-label="Open the effective rank figure at full size">
+              <img src="assets/pi05_density_rank_spaced_labels.png" width="2014" height="818" loading="lazy" alt="Across four π0.5 benchmarks, RL updates to AdaRMS and Time MLP have low effective rank. BC updates and attention and MLP updates have much higher rank.">
+            </a>
+          </div>
+          <figcaption><strong>Effective update rank.</strong> Number of singular directions explaining 95% of the update’s squared Frobenius norm; parentheses show the fraction of available rank. <a class="source" href="https://arxiv.org/html/2609.34599v1#S3.F2">Figure 2, right</a> · <a href="assets/pi05_density_rank_spaced_labels.png" target="_blank" rel="noopener">Full size</a></figcaption>
+        </figure>
+      </div>
 
       <h3>Do these updates account for the performance gains?</h3>
       <p>Starting from each RL checkpoint, we keep the learned Timestep Modules and restore the remaining parameters to the base policy, or do the reverse. For π<sub>0.5</sub>, keeping only the Timestep Module updates recovers nearly all of the RL performance across four benchmarks. The effect varies by model: GR00T N1.5 retains a smaller fraction of the gain.</p>
@@ -108,19 +119,25 @@
     <section id="timesteps" aria-labelledby="timesteps-title">
       <h2 id="timesteps-title">Why are the updates low-rank?</h2>
       <p>Standard BC samples continuous denoising timesteps, whereas RL trains at the discrete timesteps used during rollouts. In π<sub>0.5</sub>, RL specializes the Timestep Modules to these discrete inputs. <strong>Training BC with discrete timesteps produces similar specialization and low-rank updates</strong>, identifying the timestep schedule as a source of the structure.</p>
-      <figure class="figure">
-        <a href="assets/main_rl5_bc_discrete_bc_and_modulation.png" target="_blank" rel="noopener" aria-label="Open the timestep specialization and modulation figure at full size">
-          <img src="assets/main_rl5_bc_discrete_bc_and_modulation.png" width="1090" height="460" loading="lazy" alt="RL and discrete-timestep BC show localized responses at training timesteps. Shift updates are less aligned with the base output than scale and gate updates.">
+      <figure class="figure single-panel" id="timestep-specialization">
+        <a class="figure-crop specialization-panel" href="assets/main_rl5_bc_discrete_bc_and_modulation.png" target="_blank" rel="noopener" aria-label="Open the timestep specialization figure at full size">
+          <img src="assets/main_rl5_bc_discrete_bc_and_modulation.png" width="1090" height="460" loading="lazy" alt="RL and BC trained at five discrete timesteps show localized responses at the training timesteps; standard BC has smoother responses.">
         </a>
-        <figcaption><strong>Left:</strong> alignment between AdaRMS update directions and timestep-conditioning inputs on LIBERO-Spatial. Arrows mark the five training timesteps. <strong>Right:</strong> absolute cosine similarity between each base modulation vector and its RL update on MetaWorld. <a class="source" href="https://arxiv.org/html/2609.34599v1#S4.F3">Figure 3</a></figcaption>
+        <figcaption>Alignment between the top three input singular directions of the AdaRMS update and the timestep-conditioning vector on LIBERO-Spatial. Each curve is normalized by its maximum; arrows mark the five training timesteps. <a class="source" href="https://arxiv.org/html/2609.34599v1#S4.F3">Figure 3, left</a> · <a href="assets/main_rl5_bc_discrete_bc_and_modulation.png" target="_blank" rel="noopener">Full size</a></figcaption>
       </figure>
-      <h3>Shift vectors change most distinctly</h3>
-      <p>Scale and gate updates tend to align with their base outputs, largely rescaling existing directions. <strong>Shift updates are less aligned</strong>, introducing more distinct directions into the hidden states. This motivates examining what those directions encode.</p>
     </section>
 
     <section id="shifts" aria-labelledby="shifts-title">
       <h2 id="shifts-title">What do the shift directions encode?</h2>
-      <h3 class="first-subheading">Episode outcomes</h3>
+      <h3 class="first-subheading">Why focus on shift vectors?</h3>
+      <p>Scale and gate updates tend to align with their base outputs, largely rescaling existing directions. <strong>Shift updates are less aligned</strong>, introducing more distinct directions into the hidden states. This motivates examining what those directions encode.</p>
+      <figure class="figure single-panel" id="modulation-directions">
+        <a class="figure-crop modulation-panel" href="assets/main_rl5_bc_discrete_bc_and_modulation.png" target="_blank" rel="noopener" aria-label="Open the scale, shift, and gate comparison at full size">
+          <img src="assets/main_rl5_bc_discrete_bc_and_modulation.png" width="1090" height="460" loading="lazy" alt="Shift updates have lower absolute cosine similarity with the base modulation vectors than scale and gate updates in π0.5 on MetaWorld.">
+        </a>
+        <figcaption>Absolute cosine similarity between each base modulation vector and its RL update in π<sub>0.5</sub> on MetaWorld. Lower similarity indicates a more distinct update direction. <a class="source" href="https://arxiv.org/html/2609.34599v1#S4.F3">Figure 3, right</a> · <a href="assets/main_rl5_bc_discrete_bc_and_modulation.png" target="_blank" rel="noopener">Full size</a></figcaption>
+      </figure>
+      <h3 id="episode-outcomes">Episode outcomes</h3>
       <p>For each sublayer–timestep pair, we take the shift update Δb = b<sub>RL</sub> − b<sub>base</sub>, project the corresponding input hidden states onto it, and average the scores over each episode. A regularized logistic regression probe combines these scores across sublayers and timesteps to predict success or failure.</p>
       <p>Using a 70:30 split of tasks within each benchmark, the probes predict outcomes on held-out tasks for both base and RL π<sub>0.5</sub> policies. ROC-AUC reaches <strong>99.6%</strong> for the base policy on LIBERO-Spatial and ManiSkill, with performance varying across benchmarks and policies.</p>
       <div class="table-scroll" role="region" aria-label="Outcome prediction ROC-AUC" tabindex="0">
@@ -155,14 +172,22 @@
         </div>
       </details>
 
-      <h3>Relationships between tasks</h3>
+      <h3 id="task-relationships">Relationships between tasks</h3>
       <p>We also train ten separate π<sub>0.5</sub> policies on individual LIBERO-Spatial tasks. Tasks with similar shift-update directions tend to show similar cross-task transfer patterns. The mean task-wise Spearman correlation between the two similarity profiles is <strong>0.504</strong>, ranging from 0.224 to 0.794.</p>
-      <figure class="figure task-figure">
-        <a href="assets/main_taskvec.png" target="_blank" rel="noopener" aria-label="Open the task relationships figure at full size">
-          <img src="assets/main_taskvec.png" width="805" height="1401" loading="lazy" alt="Two matrices compare ten LIBERO-Spatial tasks: absolute cosine similarity of shift updates above, and correlation of cross-task transfer effects below.">
-        </a>
-        <figcaption><strong>Top:</strong> pairwise shift-update alignment. <strong>Bottom:</strong> similarity of transfer effects, measured from success-rate gains over the base policy. <a class="source" href="https://arxiv.org/html/2609.34599v1#S5.F4">Figure 4</a></figcaption>
-      </figure>
+      <div class="task-figures">
+        <figure class="figure">
+          <a class="figure-crop task-alignment-panel" href="assets/main_taskvec.png" target="_blank" rel="noopener" aria-label="Open the shift-update alignment matrix at full size">
+            <img src="assets/main_taskvec.png" width="805" height="1401" loading="lazy" alt="Absolute cosine similarity between the learned shift-update directions for ten LIBERO-Spatial tasks.">
+          </a>
+          <figcaption><strong>Shift-update alignment.</strong> Absolute cosine similarity between task-specific shift updates. <a class="source" href="https://arxiv.org/html/2609.34599v1#S5.F4">Figure 4, top</a> · <a href="assets/main_taskvec.png" target="_blank" rel="noopener">Full size</a></figcaption>
+        </figure>
+        <figure class="figure">
+          <a class="figure-crop task-transfer-panel" href="assets/main_taskvec.png" target="_blank" rel="noopener" aria-label="Open the cross-task transfer matrix at full size">
+            <img src="assets/main_taskvec.png" width="805" height="1401" loading="lazy" alt="Pairwise Spearman correlation of cross-task transfer effects across the same ten LIBERO-Spatial tasks.">
+          </a>
+          <figcaption><strong>Cross-task transfer similarity.</strong> Correlation of transfer effects, measured from success-rate gains over the base policy, with the same task ordering. <a class="source" href="https://arxiv.org/html/2609.34599v1#S5.F4">Figure 4, bottom</a> · <a href="assets/main_taskvec.png" target="_blank" rel="noopener">Full size</a></figcaption>
+        </figure>
+      </div>
     </section>
 
     <section id="steering" aria-labelledby="steering-title">

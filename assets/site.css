@@ -49,7 +49,26 @@ main > .hero { padding: 0; }
 .figure > a { display: block; cursor: zoom-in; }
 .figure figcaption { margin: 12px 0 0; font-size: 13.5px; color: var(--muted); line-height: 1.6; }
 .source { white-space: nowrap; }
-.task-figure { max-width: 520px; margin-left: auto; margin-right: auto; }
+.update-figures { display: grid; grid-template-columns: 700fr 1314fr; gap: 20px; align-items: start; }
+.task-figures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
+.update-figures > figure, .task-figures > figure { min-width: 0; }
+.single-panel { max-width: 580px; margin-left: auto; margin-right: auto; }
+.figure-crop { display: block; position: relative; overflow: hidden; }
+.figure-crop img { position: absolute; max-width: none; height: auto; }
+/* Display original paper panels separately without changing the source images. */
+.density-panel { aspect-ratio: 700 / 818; }
+.density-panel img { width: 287.7142857%; left: 0; top: 0; }
+.rank-panel { aspect-ratio: 1314 / 818; }
+.rank-panel img { width: 153.2724505%; left: -53.2724505%; top: 0; }
+.specialization-panel { aspect-ratio: 530 / 460; }
+.specialization-panel img { width: 205.6603774%; left: 0; top: 0; }
+.modulation-panel { aspect-ratio: 560 / 460; }
+.modulation-panel img { width: 194.6428571%; left: -94.6428571%; top: 0; }
+.task-alignment-panel { aspect-ratio: 805 / 701; }
+.task-alignment-panel img { width: 100%; left: 0; top: 0; }
+.task-transfer-panel { aspect-ratio: 805 / 700; }
+.task-transfer-panel img { width: 100%; left: 0; top: -100.1428571%; }
+.figure-scroll { overflow-x: auto; }
 .table-scroll { max-width: 100%; overflow-x: auto; margin: 20px 0 8px; }
 .data-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); font-size: 14px; font-variant-numeric: tabular-nums; }
 .data-table caption { text-align: left; margin-bottom: 10px; font-size: 15px; font-weight: 600; color: var(--text); }
@@ -99,6 +118,9 @@ pre { margin: 0; padding: 20px; border: 1px solid var(--border); border-radius: 
   .data-table { font-size: 13px; }
   .data-table thead th { font-size: 12px; }
   .figure figcaption, .table-note { font-size: 13px; }
+  .update-figures, .task-figures { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .density-panel { max-width: 350px; margin: 0 auto; }
+  .rank-panel { min-width: 580px; }
   pre { padding: 14px; font-size: 12px; }
 }
 @media (max-width: 380px) {
