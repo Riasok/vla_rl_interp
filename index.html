@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Low-Rank Structure of VLA Reinforcement Learning</title>
+  <meta name="description" content="How reinforcement learning reshapes flow-based vision-language-action models through low-rank timestep updates, and how learned shift directions support policy steering.">
+  <meta name="author" content="Minjae Oh, Yoonah Park, Jongwon Lim, Yohan Jo">
+  <link rel="canonical" href="https://holi-lab.github.io/vla_rl_interp/">
+  <meta name="citation_title" content="The Low-Rank Structure of VLA Reinforcement Learning">
+  <meta name="citation_author" content="Minjae Oh">
+  <meta name="citation_author" content="Yoonah Park">
+  <meta name="citation_author" content="Jongwon Lim">
+  <meta name="citation_author" content="Yohan Jo">
+  <meta name="citation_publication_date" content="2026/09/28">
+  <meta name="citation_arxiv_id" content="2609.34599">
+  <meta name="citation_pdf_url" content="https://arxiv.org/pdf/2609.34599">
+  <meta property="og:title" content="The Low-Rank Structure of VLA Reinforcement Learning">
+  <meta property="og:description" content="Low-rank timestep updates encode much of the RL gain in flow-based VLA policies. Learned shift directions predict outcomes and support inference-time steering.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://holi-lab.github.io/vla_rl_interp/">
+  <meta property="og:image" content="https://holi-lab.github.io/vla_rl_interp/assets/pi05_density_rank_spaced_labels.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&amp;display=swap">
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#overview">Skip to content</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#top">VLA Reinforcement Learning</a>
+      <nav aria-label="Page sections">
+        <a href="#overview">Overview</a>
+        <a href="#updates">Updates</a>
+        <a href="#timesteps">Timesteps</a>
+        <a href="#shifts">Shift vectors</a>
+        <a href="#steering">Steering</a>
+        <a href="#bibtex">BibTeX</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero" aria-labelledby="paper-title">
+      <div class="hero-inner">
+        <h1 id="paper-title">The Low-Rank Structure of VLA<br class="title-break"> Reinforcement Learning</h1>
+        <p class="authors"><span>Minjae Oh<sup>*</sup></span><span>Yoonah Park<sup>*</sup></span><span>Jongwon Lim<sup>*</sup></span><span>Yohan Jo<sup>†</sup></span></p>
+        <p class="affiliation">Graduate School of Data Science, Seoul National University</p>
+        <p class="author-notes"><span><sup>*</sup> Equal contribution</span><span><sup>†</sup> Corresponding author</span></p>
+        <div class="links">
+          <a class="button" href="https://arxiv.org/pdf/2609.34599" target="_blank" rel="noopener">Paper</a>
+          <a class="button" href="https://arxiv.org/abs/2609.34599" target="_blank" rel="noopener">arXiv</a>
+          <a class="button" href="https://github.com/holi-lab/vla_rl_interp" target="_blank" rel="noopener">GitHub</a>
+          <a class="button secondary" href="#bibtex">BibTeX</a>
+        </div>
+      </div>
+      <div class="tldr">
+        <h2>TL;DR</h2>
+        <p>Reinforcement learning (RL) in flow-based vision-language-action (VLA) models concentrates much of its effect in <strong>low-rank updates to the action expert’s Timestep Modules</strong>. These updates specialize to discrete denoising timesteps. Their shift directions predict task outcomes, reflect cross-task transfer, and support steering that improves RL policies <strong>without additional RL training</strong>.</p>
+      </div>
+    </section>
+
+    <section id="overview" aria-labelledby="overview-title">
+      <h2 id="overview-title">What is this paper about?</h2>
+      <p>Where does RL change a VLA policy, and how do those changes affect behavior? We study this question in parameter space, comparing RL and behavior cloning (BC) in flow-based action experts. Across π<sub>0.5</sub> and GR00T N1.5/N1.6 on robot manipulation benchmarks, we find that Timestep Modules capture a disproportionate share of the performance gains from RL. We then examine how their updates encode task-related information and whether that information can improve policy behavior.</p>
+      <h3>What are Timestep Modules?</h3>
+      <p>In π<sub>0.5</sub>, a Time MLP and adaptive RMS normalization (AdaRMS) projections convert the denoising timestep into <strong>scale, shift, and gate vectors</strong> for each attention or feed-forward sublayer. These vectors depend only on the timestep, independent of the image, language instruction, or current task progress.</p>
+      <figure class="figure">
+        <a href="assets/main_timestep_modules.svg" target="_blank" rel="noopener" aria-label="Open the Timestep Modules diagram at full size">
+          <img src="assets/main_timestep_modules.svg" width="975" height="407" alt="In the π0.5 action expert, the timestep passes through a Time MLP and AdaRMS projections to produce scale, shift, and gate vectors for attention and feed-forward sublayers.">
+        </a>
+        <figcaption>The Timestep Modules in π<sub>0.5</sub> modulate the action expert at each denoising step. They account for 27.58% of its action-expert parameters. <a class="source" href="https://arxiv.org/html/2609.34599v1#S2.F1">Figure 1</a></figcaption>
+      </figure>
+    </section>
+
+    <section id="updates" aria-labelledby="updates-title">
+      <h2 id="updates-title">Where are the RL updates concentrated?</h2>
+      <p>Both BC and RL update the Timestep Modules much more densely than attention and MLP layers. Their update structure differs: in π<sub>0.5</sub>, RL updates to the Timestep Modules have an effective rank of only about <strong>6–30</strong>, compared with hundreds for BC. RL updates to attention and MLP layers remain high-rank.</p>
+      <figure class="figure">
+        <a href="assets/pi05_density_rank_spaced_labels.png" target="_blank" rel="noopener" aria-label="Open the update density and effective rank figure at full size">
+          <img src="assets/pi05_density_rank_spaced_labels.png" width="2014" height="818" loading="lazy" alt="Update density is concentrated in AdaRMS and Time MLP. Across four benchmarks, their RL updates have low effective rank, while BC updates and attention and MLP updates have much higher rank.">
+        </a>
+        <figcaption><strong>Left:</strong> update density on LIBERO-Spatial, counting absolute parameter changes above 10<sup>−5</sup>. <strong>Right:</strong> effective update rank, the number of singular directions needed to explain 95% of the update’s squared Frobenius norm. <a class="source" href="https://arxiv.org/html/2609.34599v1#S3.F2">Figure 2</a></figcaption>
+      </figure>
+
+      <h3>Do these updates account for the performance gains?</h3>
+      <p>Starting from each RL checkpoint, we keep the learned Timestep Modules and restore the remaining parameters to the base policy, or do the reverse. For π<sub>0.5</sub>, keeping only the Timestep Module updates recovers nearly all of the RL performance across four benchmarks. The effect varies by model: GR00T N1.5 retains a smaller fraction of the gain.</p>
+      <div class="table-scroll" role="region" aria-label="Module replacement success rates" tabindex="0">
+        <table class="data-table module-table" data-source="S3.T1">
+          <caption>Module replacement: success rate (%)</caption>
+          <thead><tr><th scope="col">Model / benchmark</th><th scope="col">Base</th><th scope="col">RL</th><th scope="col">Timestep<br>Modules only</th><th scope="col">MLP +<br>Attention only</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">π<sub>0.5</sub> / LIBERO</th><td>87.7</td><td>96.5</td><td class="emphasis">95.1</td><td>90.5</td></tr>
+            <tr><th scope="row">π<sub>0.5</sub> / ManiSkill</th><td>42.2</td><td>89.1</td><td class="emphasis">87.5</td><td>49.4</td></tr>
+            <tr><th scope="row">π<sub>0.5</sub> / MetaWorld</th><td>42.8</td><td>69.2</td><td class="emphasis">69.6</td><td>54.6</td></tr>
+            <tr><th scope="row">π<sub>0.5</sub> / CALVIN</th><td>61.8</td><td>87.7</td><td class="emphasis">87.0</td><td>62.7</td></tr>
+            <tr><th scope="row">GR00T N1.5 / LIBERO</th><td>54.4</td><td>90.3</td><td class="emphasis">61.3</td><td>57.9</td></tr>
+            <tr><th scope="row">GR00T N1.6 / LIBERO-Spatial</th><td>75.6</td><td>85.0</td><td class="emphasis">84.8</td><td>84.6</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">“Only” specifies which RL updates are retained; all other parameters are restored to the base checkpoint. LIBERO averages Spatial, Object, and Goal, except for GR00T N1.6. <a class="source" href="https://arxiv.org/html/2609.34599v1#S3.T1">Table 1</a></p>
+    </section>
+
+    <section id="timesteps" aria-labelledby="timesteps-title">
+      <h2 id="timesteps-title">Why are the updates low-rank?</h2>
+      <p>Standard BC samples continuous denoising timesteps, whereas RL trains at the discrete timesteps used during rollouts. In π<sub>0.5</sub>, RL specializes the Timestep Modules to these discrete inputs. <strong>Training BC with discrete timesteps produces similar specialization and low-rank updates</strong>, identifying the timestep schedule as a source of the structure.</p>
+      <figure class="figure">
+        <a href="assets/main_rl5_bc_discrete_bc_and_modulation.png" target="_blank" rel="noopener" aria-label="Open the timestep specialization and modulation figure at full size">
+          <img src="assets/main_rl5_bc_discrete_bc_and_modulation.png" width="1090" height="460" loading="lazy" alt="RL and discrete-timestep BC show localized responses at training timesteps. Shift updates are less aligned with the base output than scale and gate updates.">
+        </a>
+        <figcaption><strong>Left:</strong> alignment between AdaRMS update directions and timestep-conditioning inputs on LIBERO-Spatial. Arrows mark the five training timesteps. <strong>Right:</strong> absolute cosine similarity between each base modulation vector and its RL update on MetaWorld. <a class="source" href="https://arxiv.org/html/2609.34599v1#S4.F3">Figure 3</a></figcaption>
+      </figure>
+      <h3>Shift vectors change most distinctly</h3>
+      <p>Scale and gate updates tend to align with their base outputs, largely rescaling existing directions. <strong>Shift updates are less aligned</strong>, introducing more distinct directions into the hidden states. This motivates examining what those directions encode.</p>
+    </section>
+
+    <section id="shifts" aria-labelledby="shifts-title">
+      <h2 id="shifts-title">What do the shift directions encode?</h2>
+      <h3 class="first-subheading">Episode outcomes</h3>
+      <p>For each sublayer–timestep pair, we take the shift update Δb = b<sub>RL</sub> − b<sub>base</sub>, project the corresponding input hidden states onto it, and average the scores over each episode. A regularized logistic regression probe combines these scores across sublayers and timesteps to predict success or failure.</p>
+      <p>Using a 70:30 split of tasks within each benchmark, the probes predict outcomes on held-out tasks for both base and RL π<sub>0.5</sub> policies. ROC-AUC reaches <strong>99.6%</strong> for the base policy on LIBERO-Spatial and ManiSkill, with performance varying across benchmarks and policies.</p>
+      <div class="table-scroll" role="region" aria-label="Outcome prediction ROC-AUC" tabindex="0">
+        <table class="data-table" data-source="S5.T2">
+          <caption>Episode-outcome prediction: ROC-AUC (%)</caption>
+          <thead><tr><th scope="col">Benchmark</th><th scope="col">Base policy</th><th scope="col">RL policy</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">LIBERO-Spatial</th><td>99.6</td><td>96.6</td></tr>
+            <tr><th scope="row">LIBERO-Object</th><td>98.6</td><td>97.4</td></tr>
+            <tr><th scope="row">LIBERO-Goal</th><td>98.9</td><td>68.0</td></tr>
+            <tr><th scope="row">ManiSkill</th><td>99.6</td><td>98.3</td></tr>
+            <tr><th scope="row">MetaWorld</th><td>74.2</td><td>90.1</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">ROC-AUC measures prediction of episode outcomes, not policy success rate. <a class="source" href="https://arxiv.org/html/2609.34599v1#S5.T2">Table 2</a></p>
+      <details class="result-details">
+        <summary>Shuffled-label controls</summary>
+        <p>Probes trained with shuffled outcome labels yield near-chance ROC-AUC.</p>
+        <div class="table-scroll" role="region" aria-label="Shuffled-label control ROC-AUC" tabindex="0">
+          <table class="data-table" data-source="S5.T2-random">
+            <caption>Shuffled-label controls: ROC-AUC (%)</caption>
+            <thead><tr><th scope="col">Benchmark</th><th scope="col">Base policy</th><th scope="col">RL policy</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">LIBERO-Spatial</th><td>46.5 ± 4.0</td><td>51.5 ± 3.9</td></tr>
+              <tr><th scope="row">LIBERO-Object</th><td>53.4 ± 6.3</td><td>47.2 ± 13.3</td></tr>
+              <tr><th scope="row">LIBERO-Goal</th><td>49.0 ± 3.5</td><td>52.6 ± 6.4</td></tr>
+              <tr><th scope="row">ManiSkill</th><td>51.8 ± 7.0</td><td>46.5 ± 9.3</td></tr>
+              <tr><th scope="row">MetaWorld</th><td>49.4 ± 4.8</td><td>49.4 ± 6.1</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <h3>Relationships between tasks</h3>
+      <p>We also train ten separate π<sub>0.5</sub> policies on individual LIBERO-Spatial tasks. Tasks with similar shift-update directions tend to show similar cross-task transfer patterns. The mean task-wise Spearman correlation between the two similarity profiles is <strong>0.504</strong>, ranging from 0.224 to 0.794.</p>
+      <figure class="figure task-figure">
+        <a href="assets/main_taskvec.png" target="_blank" rel="noopener" aria-label="Open the task relationships figure at full size">
+          <img src="assets/main_taskvec.png" width="805" height="1401" loading="lazy" alt="Two matrices compare ten LIBERO-Spatial tasks: absolute cosine similarity of shift updates above, and correlation of cross-task transfer effects below.">
+        </a>
+        <figcaption><strong>Top:</strong> pairwise shift-update alignment. <strong>Bottom:</strong> similarity of transfer effects, measured from success-rate gains over the base policy. <a class="source" href="https://arxiv.org/html/2609.34599v1#S5.F4">Figure 4</a></figcaption>
+      </figure>
+    </section>
+
+    <section id="steering" aria-labelledby="steering-title">
+      <h2 id="steering-title">Steering an already trained policy</h2>
+      <p>Can these directions improve behavior? We select a sublayer–timestep pair using probing performance on the training tasks. When its hidden-state projection deviates from the successful-episode mean, we steer along the learned shift direction by the minimum amount needed to reach that mean.</p>
+      <p>This adaptive intervention improves the RL π<sub>0.5</sub> policy by <strong>2.0–4.0 percentage points</strong> across five benchmarks, outperforming matched-norm random directions. It uses probes and successful-episode statistics from the training split, without additional RL training.</p>
+      <div class="table-scroll" role="region" aria-label="Adaptive steering success rates" tabindex="0">
+        <table class="data-table steering-table" data-source="S5.T3">
+          <caption>Adaptive steering: success rate (%)</caption>
+          <thead><tr><th scope="col">Benchmark</th><th scope="col">RL</th><th scope="col">Random steering</th><th scope="col">Shift steering</th><th scope="col">Gain (pp)</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">LIBERO-Spatial</th><td>86.7</td><td>87.2 ± 0.3</td><td class="emphasis">90.0</td><td>+3.3</td></tr>
+            <tr><th scope="row">LIBERO-Object</th><td>94.7</td><td>94.7 ± 0.0</td><td class="emphasis">96.7</td><td>+2.0</td></tr>
+            <tr><th scope="row">LIBERO-Goal</th><td>90.7</td><td>90.7 ± 0.0</td><td class="emphasis">94.7</td><td>+4.0</td></tr>
+            <tr><th scope="row">ManiSkill</th><td>90.0</td><td>88.4 ± 3.4</td><td class="emphasis">92.0</td><td>+2.0</td></tr>
+            <tr><th scope="row">MetaWorld</th><td>66.7</td><td>64.1 ± 1.8</td><td class="emphasis">68.7</td><td>+2.0</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">Evaluated on the 30% held-out task split used for probing. Gains are percentage-point differences from the RL policy. <a class="source" href="https://arxiv.org/html/2609.34599v1#S5.T3">Table 3</a></p>
+    </section>
+
+    <section id="bibtex" aria-labelledby="bibtex-title">
+      <div class="citation-heading">
+        <h2 id="bibtex-title">BibTeX</h2>
+        <div class="citation-actions"><a href="citation.bib" download>Download</a><button id="copy-citation" type="button" hidden>Copy</button></div>
+      </div>
+      <pre><code id="citation">@misc{oh2026lowrankstructurevla,
+  title={The Low-Rank Structure of VLA Reinforcement Learning},
+  author={Minjae Oh and Yoonah Park and Jongwon Lim and Yohan Jo},
+  year={2026},
+  eprint={2609.34599},
+  archivePrefix={arXiv},
+  url={https://arxiv.org/abs/2609.34599}
+}</code></pre>
+      <p class="copy-status" id="copy-status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+</body>
+</html>
