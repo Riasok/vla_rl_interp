@@ -9,13 +9,11 @@ This repository hosts the research project page. It summarizes the paper's param
 ## Citation
 
 ```bibtex
-@misc{oh2026lowrankstructurevla,
+@article{oh2026low,
   title={The Low-Rank Structure of VLA Reinforcement Learning},
-  author={Minjae Oh and Yoonah Park and Jongwon Lim and Yohan Jo},
-  year={2026},
-  eprint={2609.34599},
-  archivePrefix={arXiv},
-  url={https://arxiv.org/abs/2609.34599}
+  author={Oh, Minjae and Park, Yoonah and Lim, Jongwon and Jo, Yohan},
+  journal={arXiv preprint arXiv:2609.34599},
+  year={2026}
 }
 ```
 
